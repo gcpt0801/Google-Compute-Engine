@@ -45,12 +45,12 @@ jobs:
 
     # Generates an execution plan for Terraform
     - name: Terraform Plan (destroy)
-      run: terraform plan -destroy -var-file="dev.tfvars"
+      run: terraform plan -destroy -var "image_name=dummy" -var-file="dev.tfvars"
 
       # On push to "main", build or change infrastructure according to Terraform configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
     - name: Terraform Destroy
-      run: terraform destroy -auto-approve -var-file="dev.tfvars"
+      run: terraform destroy -auto-approve -var "image_name=dummy" -var-file="dev.tfvars"
 
     - name: Cleanup credentials
       if: always()
