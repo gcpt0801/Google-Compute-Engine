@@ -3,10 +3,11 @@ resource "google_compute_instance" "default" {
   name         = "apacheweb-instance-${count.index + 1}"
   machine_type = var.machine_type
   zone         = var.zone
+  tags         = ["http-server"]
 
   boot_disk {
     initialize_params {
-      image = "ubuntu-2204-jammy-v20251023"
+      image = var.image_name != "" ? var.image_name : "ubuntu-2204-jammy-v20251023"
     }
   }
 
@@ -16,4 +17,17 @@ resource "google_compute_instance" "default" {
   }
 
   metadata_startup_script = file("${path.module}/startup.sh")
+}
+
+resource "google_compute_firewall" "http" {
+  name    = "allow-http"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["http-server"]
 }
