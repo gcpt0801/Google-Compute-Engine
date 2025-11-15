@@ -7,6 +7,15 @@ variable "image_name" {
   default = "custom-apache-image"
 }
 
+packer {
+  required_plugins {
+    googlecompute = {
+      version = ">= 1.0.0"
+      source  = "github.com/hashicorp/googlecompute"
+    }
+  }
+}
+
 source "googlecompute" "apache" {
   project             = var.project
   zone                = "us-central1-a"
