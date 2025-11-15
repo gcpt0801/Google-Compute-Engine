@@ -39,11 +39,22 @@ variable "image_name" {
 **What it does:**
 - Defines input variables that can be passed when running Packer
 - `project_id`: Your GCP project ID (required - no default)
-- `image_name`: Name for the final image (optional - defaults to "custom-apache-image")
+- `image_name`: Name for the final image (no default - must be provided)
 
 **Why use variables?**
 - Makes the template reusable across different projects
-- Allows dynamic image naming (useful in CI/CD pipelines)
+- Allows dynamic image naming (essential for CI/CD pipelines)
+
+**CI/CD Integration:**
+In the GitHub Actions workflow, image names are automatically generated using:
+```yaml
+image_name=custom-apache-image-${{ github.run_id }}
+```
+This creates unique, versioned images like:
+- `custom-apache-image-19388339951`
+- `custom-apache-image-19400123456`
+
+Each workflow run produces a new image version that Terraform can use.
 
 ### 2. Packer Block
 
@@ -284,9 +295,49 @@ This template is designed for GitHub Actions. The workflow:
 
 1. Triggers on `workflow_dispatch` (manual trigger)
 2. Authenticates to GCP
-3. Runs Packer build
-4. Uses the created image name in Terraform
-5. Deploys a VM with the custom image
+3. Runs Packer build with unique image name: `custom-apache-image-{run_id}`
+4. Passes the same image name to Terraform
+5. Deploys VMs with the newly built custom image
+
+### Automatic Image Versioning
+
+**Workflow logic:**
+```yaml
+# Step 1: Packer builds the image
+packer build -var "image_name=custom-apache-image-${{ github.run_id }}"
+
+# Step 2: Terraform uses the same image
+terraform apply -var "image_name=custom-apache-image-${{ github.run_id }}"
+```
+
+**Result:** Every workflow run creates a new, versioned image:
+- Run #12345: Creates `custom-apache-image-12345` → Terraform deploys VMs with this image
+- Run #67890: Creates `custom-apache-image-67890` → Terraform deploys VMs with this image
+
+**Benefits:**
+- 🔄 **Immutable infrastructure:** Each deployment uses a specific image version
+- 📦 **Version history:** Keep multiple image versions for rollback
+- 🔍 **Traceability:** Match VMs to exact workflow run that created them
+- ⚡ **No conflicts:** Parallel builds never overwrite each other
+
+### Image Lifecycle
+
+```
+Workflow Triggered
+       |
+       v
+[Packer Build]
+   image: custom-apache-image-19388339951
+       |
+       v
+[Image Stored in GCP]
+   |
+   +---> [Terraform Deploy] ---> VMs boot from this image
+   |
+   +---> [Available for future use]
+   |
+   +---> [Can be deleted manually when no longer needed]
+```
 
 ## Understanding the Build Process
 
@@ -372,10 +423,19 @@ gcloud compute images delete old-image-name
 
 ### 1. Image Naming Convention
 ```bash
-# Include timestamp or build ID
-custom-apache-image-20251115
-custom-apache-image-${GITHUB_RUN_ID}
+# In CI/CD: Use GitHub run ID for automatic versioning
+custom-apache-image-${{ github.run_id }}  # Recommended
+
+# Manual builds: Include timestamp or identifier
+custom-apache-image-$(date +%s)
+custom-apache-image-v1.2.3
 ```
+
+**Why GitHub run_id?**
+- ✅ Automatically unique for every workflow execution
+- ✅ Traceable back to specific workflow run
+- ✅ No manual intervention needed
+- ✅ Terraform uses exact same image name in the same workflow
 
 ### 2. Keep Base Image Updated
 - Use `source_image_family` instead of specific image version

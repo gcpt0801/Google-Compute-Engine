@@ -13,9 +13,9 @@ variable "machine_type" {
 
 }
 variable "image_name" {
-  description = "Optional: custom image name to use for boot disk. Leave empty to use default Ubuntu image."
+  description = "Custom image name built by Packer (required)"
   type        = string
-  default     = ""
+  # No default - must be provided via command line or tfvars
 }
 variable "zone" {
   description = "GCP zone"

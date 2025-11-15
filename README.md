@@ -124,8 +124,11 @@ Edit `dev.tfvars` to match your requirements:
 instance_count = 2                  # Number of VM instances
 machine_type   = "n2-standard-2"    # VM machine type
 zone           = "us-central1-a"    # GCP zone
-image_name     = ""                 # Leave empty for workflow, or specify custom image
+# image_name is provided by the workflow via -var flag
+# Format: custom-apache-image-{github.run_id}
 ```
+
+**Note:** The `image_name` variable is **required** and must be a Packer-built custom image. The GitHub Actions workflow automatically generates unique image names using `github.run_id` (e.g., `custom-apache-image-19388339951`).
 
 ## 📦 Deployment Methods
 
@@ -146,10 +149,16 @@ Using GitHub Actions workflow:
    Go to: `Actions → Build image and apply Terraform → Run workflow`
    
    The workflow will:
-   - ✅ Build custom Apache2 image using Packer
-   - ✅ Deploy VMs using Terraform with the new image
+   - ✅ Build custom Apache2 image using Packer with unique name (custom-apache-image-{run_id})
+   - ✅ Deploy VMs using Terraform with the newly built image
    - ✅ Configure firewall rules
    - ✅ Output VM IP addresses
+   
+   **Image Naming:** Each workflow run generates a unique image name using GitHub's `run_id`. For example:
+   - Run #1: `custom-apache-image-19388339951`
+   - Run #2: `custom-apache-image-19400123456`
+   
+   This ensures every deployment uses a fresh, versioned image.
 
 3. **Monitor Progress**
    
@@ -244,7 +253,9 @@ curl http://<VM_IP_ADDRESS>
 | `zone` | string | us-central1-a | GCP zone |
 | `instance_count` | number | 2 | Number of VMs |
 | `machine_type` | string | n2-standard-2 | VM size |
-| `image_name` | string | - | Custom image name |
+| `image_name` | string | **required** | Custom Packer image (auto-generated in workflow) |
+
+**Important:** `image_name` has no default value and must be provided. The GitHub Actions workflow automatically passes this using `custom-apache-image-${{ github.run_id }}`.
 
 ## 🔄 CI/CD Workflows
 
@@ -263,6 +274,19 @@ curl http://<VM_IP_ADDRESS>
 6. Apply infrastructure
 
 **Duration:** ~8-10 minutes
+
+**Image Versioning:** Each workflow execution creates a new image with a unique name based on the GitHub run ID. This provides:
+- **Traceability:** Match deployed VMs to specific workflow runs
+- **Rollback capability:** Keep multiple image versions for easy rollback
+- **Immutable infrastructure:** Each deployment uses a specific versioned image
+- **No conflicts:** Multiple builds never overwrite each other
+
+Example image progression:
+```
+custom-apache-image-19388339951  (First build)
+custom-apache-image-19400123456  (Second build - next day)
+custom-apache-image-19412567890  (Third build - after updates)
+```
 
 ### 2. Terraform Apply Only
 
