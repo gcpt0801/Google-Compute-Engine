@@ -15,8 +15,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure credentials file for tools
+        env:
+          GCP_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" | base64 -d > /tmp/gcp-key.json
+          echo "$GCP_KEY" > /tmp/gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
 
       - name: Install Packer
