@@ -4,6 +4,15 @@ data "google_compute_image" "latest_custom_apache" {
   project = "gcp-terraform-demo-474514"
 }
 
+# Validation: Ensure either use_latest_image is true OR image_name is provided
+locals {
+  validate_image_config = (
+    var.use_latest_image == true || var.image_name != "" ?
+    true :
+    tobool("ERROR: Either set use_latest_image=true OR provide image_name")
+  )
+}
+
 resource "google_compute_instance" "default" {
   count        = var.instance_count
   name         = "apacheweb-instance-${count.index + 1}"

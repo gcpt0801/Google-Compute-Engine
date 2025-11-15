@@ -16,10 +16,6 @@ variable "image_name" {
   description = "Custom image name built by Packer (required when use_latest_image is false)"
   type        = string
   default     = ""
-  validation {
-    condition     = var.use_latest_image == true || var.image_name != ""
-    error_message = "image_name must be provided when use_latest_image is false"
-  }
 }
 variable "use_latest_image" {
   description = "If true, uses the latest image from custom-apache family. If false, uses image_name variable"
